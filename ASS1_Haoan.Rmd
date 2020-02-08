@@ -1,0 +1,262 @@
+---
+title: "BCB420 Assignment 1 Dataset Preparation"
+output:
+  html_document:
+    df_print: paged
+---
+
+This assignment is the preparatory work for the following assignment of the course. Seven 
+questions of interpretation and ocumenting the data were numbered from 1 to 7. 
+
+The five questions from the <cite><a href= "https://github.com/bcb420-2020/General_Course_Info/wiki/Assignment%231#interpret-and-document">interpret, and document</a><cite> were answered in the end. 
+
+
+
+### Dataset selection: 
+
+
+###### Note that the 'getGEOSuppFiles' recognize GEO accession number wih no parsing of downloaded file
+
+```{r}
+library(GEOquery)
+```
+
+###### Downloading GSE125664 from Gene Expression Omnibus (GEO) to the working directory(wd) of my machine. 
+```{r}
+files <- getGEOSuppFiles('GSE125664') 
+fnames <- rownames(files) 
+```
+
+###### Reading data into RStudio as data frames for further analysis 
+```{r}
+exp <- read.csv(fnames[1], header=TRUE, check.names = FALSE)
+```
+
+###### View the data frame 
+```{r}
+head(exp)
+```
+###### first column name is ""
+```{r}
+colnames(exp)  
+```
+
+###### Hence, remove and reassign them the first column to the a new column named "name" that refers to gene names.
+```{r}
+exp$name <- exp[, 1]
+exp <- exp[, -1]
+head(exp)
+```
+
+###### As a relational dataset, checking if duplicates of gene names exists. 
+
+###### ACID is the acronym for Atomicity, Consistency, Indivisibility, Durability.
+
+```{r}
+dim(exp)
+```
+###### If numbers equal, no two genes share the same name. 
+###### Otherwise, the dataset does not fulfill the "ACID" requirement of a relational data model.
+```{r}
+length(unique(exp$name))
+```
+
+###### Identify duplicated gene names 
+
+```{R}
+#Now that we found two different genes with the same names exist more than once, the code below identifies which two gene names they are.
+gTable <- table(exp$name) 
+gTable[gTable>1]
+```
+
+###### 1-Mar and 2-Mar are the two duplicated gene names.
+
+### Cleaning the dataset
+
+```{r}
+# Download, install and run in RSdtuio( library() ) edgeR package
+BiocManager::install("edgeR")
+library("edgeR")
+```
+
+###### Cleaning the dataset by removing duplicated gene names 
+```{r}
+exp <- exp[!(exp$name %in% c("1-Mar", "2-Mar")), ]
+```
+
+###### cpm(Counts Per Million) from edgeR is used to normalizing all data for comparison
+```{r}
+cpms <- cpm(exp[,-10])
+rownames(cpms)<-exp[,10]
+```
+
+### Filtering out weakly expressed or non-expressed data
+
+```{r}
+keep =rowSums(cpms > 1) >=2 # Genes with cpm values greater than one, in at least two samples will be keeped for future analysis.  
+gName <- names(keep[which(keep == TRUE)])
+exp.filtered <- exp[which(exp$name %in% gName), ]
+```
+
+###### Assign the filtered, clean dataset to a new variable exp.filtered.
+
+```{r}
+exp.filtered <- exp[keep, ] #Now we have the clean, filtered and informative exp dataset, with a new name exp.filtered
+
+#Alternatively, use exp[which(keep == TRUE), ] instead of exp[keep, ]
+```
+
+### plots 
+
+###### Distribution of pre-normalization data in boxplot.
+
+```{r}
+data2plot <- log2(exp.filtered[, -10]) # log2 is used to bring down dataset ranges so that all data points can be shown in one box plot 
+
+boxplot(data2plot, xlab = "Samples", ylab = "log2-CPM", 
+        las = 2, cex = 0.5, cex.lab = 0.5,
+        cex.axis = 0.5, main = "RNASeq Samples")
+```
+
+###### Post-normalization distribution in boxplot.
+```{R}
+data2plot <- log2(cpm(exp.filtered[, -10]))  #cpm is the normalization function 
+boxplot(data2plot, xlab = "Samples", ylab = "log2-CPM", 
+        las = 2, cex = 0.5, cex.lab = 0.5,
+        cex.axis = 0.5, main = "RNASeq Samples")
+```
+
+###### Pre-normalization density plot 
+```{r}
+ pre_counts_density <- apply(log2(exp.filtered[, -10]), 2, density)
+    xlim <- 0; ylim <- 0
+    for (i in 1:length(pre_counts_density)) {
+      xlim <- range(c(xlim, pre_counts_density[[i]]$x)); 
+      ylim <- range(c(ylim, pre_counts_density[[i]]$y))
+    }
+    cols <- rainbow(length(pre_counts_density))
+    ltys <- rep(1, length(pre_counts_density))
+
+plot(pre_counts_density[[1]], xlim=xlim, ylim=ylim, type="n", 
+    ylab="Smoothing density of log2-CPM", main="Pre-normalization Density Plot", cex.lab = 0.85)
+    #plot each line
+    for (i in 1:length(pre_counts_density)) lines(pre_counts_density[[i]], col=cols[i], lty=ltys[i])
+    #create legend
+    legend("topleft", colnames(data2plot),  
+           col=cols, lty=ltys, cex=0.5, 
+           border ="blue",  text.col = "green4", 
+           merge = TRUE, bg = "gray90")
+```
+           
+###### Note: As can be seen in, the pre- and post-normalization density plot is not as good as the box plot in showing changes. 
+
+###### Post-normalization density plot 
+```{r}
+post_counts_density <- apply(log2(cpm(exp.filtered[, -10])), 2, density)
+    xlim <- 0; ylim <- 0
+    for (i in 1:length(post_counts_density)) {
+      xlim <- range(c(xlim, post_counts_density[[i]]$x)); 
+      ylim <- range(c(ylim, post_counts_density[[i]]$y))
+    }
+    cols <- rainbow(length(post_counts_density))
+    ltys <- rep(1, length(post_counts_density))
+
+    plot(post_counts_density[[1]], xlim=xlim, ylim=ylim, type="n", 
+    ylab="Smoothing density of log2-CPM", main="Post-normalization Density Plot", cex.lab = 0.85)
+    #plot each line
+    for (i in 1:length(post_counts_density)) lines(post_counts_density[[i]], col=cols[i], lty=ltys[i])
+    #create legend
+    legend("topleft", colnames(data2plot),  
+           col=cols, lty=ltys, cex=0.5, 
+           border ="blue",  text.col = "green4", 
+           merge = TRUE, bg = "gray90")
+```
+
+
+
+### Question 1 What are the control and test conditions of the dataset? 
+
+The dataset has three conditions, each with three replicates. One Healthy control(H) and two test conditions (R, NR).
+
+Where the column names take the form of "H_neurons_#" are control conditions. 
+"#" refers to the replicate number. For example, for Healthy human sample as the second replicate, its name is "H-neurons_2"
+
+Two Test conditions: Three replicates of each
+1)  Non-resistant to SSRI human sample. Names in "NR_neurons_#" 
+2)  Resistant to SSRI human sample. Names in "R_neurons_#"
+
+### Question 2-Why is the dataset of interest to you?
+
+The GSE125664 dataset is selected for two reasons:
+1) The dataset (GSE128387) of my first choice was rejected because of no healthy human samples.
+2) The dataset to be used ( GSE125664) not only have healthy human samples, but also studies the same area of interest i.e. How effective is Serotonin Reuptake Inhibitor (SSRI) in patients who are resistant and nonresistant to the drug. I am highly interested in this topic because of the perplexing incidence of suicidal ideation observed under clinical settings, according to the article on which GSE125664 is based.
+
+
+### Question 3 Were there expression values that were not unique for specific genes? How did you handle these?
+As shown by the code and calculation below, I found 1916 expression values that are not specifc to one gene. As expression values do not have to be unique, no changes are made to these values, also because they are informative. 
+
+However, it's safe to conclude that, by looking at the dataset, that within the 1916 overlapping numbers, many are zeros and ones. As seen in Question 4, some of these zeros or ones were determined to be outliers and eliminated due to being either weakly expressed or non-informative. 
+
+```{r}
+ dim(unique(exp[, -10]))
+#[1] 20431     9
+ dim(exp)
+#[1] 22347    10
+#22347 - 20431 = 1916
+```
+
+
+### Question 4 Were there expression values that could not be mapped to current HUGO symbols? 
+Not Applicable. As my data are RNA-seq data not Microarray data, no mapping to HUGO symbols are needed.
+
+Outliers were removed with the "Keep" function as shown below. 
+
+```{r}
+keep =rowSums(cpms > 1) >=2 # Genes with cpm values greater than one, in at least two samples will be keeped for future analysis.  
+gName <- names(keep[which(keep == TRUE)])
+exp.filtered <- exp[which(exp$name %in% gName), ]
+```
+  
+### Question 5 How many outliers were removed? 
+
+As can be seen in the discussion<cite><a href="https://stats.stackexchange.com/questions/200534/is-it-ok-to-remove-outliers-from-data/200923">Outlier Discussion Thread</a><cite> The general sentiment is that because outliers are hard to determine, as the example below, it's risky to remove them. 
+
+However, according to <cite><a href="https://www.bioconductor.org/packages/release/bioc/vignettes/edgeR/inst/doc/edgeRUsersGuide.pdfedgeRUserGuide.">edgeRUserGuide</a><cite>, weakly expressed or non-expressed data are considered outliers and need to be removed. 
+
+Since with edgeR package outliers have been clearly defined, unlike examples quoted in the <cite><a href="https://stats.stackexchange.com/questions/200534/is-it-ok-to-remove-outliers-from-data/200923"> Outlier Discussion Thread</a><cite>,it is not risky to remove outliers in our case.
+
+The code below eliminated outliers 
+```{r}
+keep =rowSums(cpms > 1) >=2
+gName <- names(keep[which(keep == TRUE)])
+exp.filtered <- exp[which(exp$name %in% gName), ]
+```
+
+
+The number of outliers removed can also be calculated
+```{R}
+nOutliers <- dim(exp)[1] - dim(exp.filtered)[1]
+nOutliers
+```
+
+
+### Question 6 How did you handle replicates?     
+The dataset has three conditions, each with three replicates. One Healthy control and two test conditions (R, NR). Theoretically, taking the mean of replicates is the way to handle.  The edgeR package has built-in algorithm to handle replicates, according to <cite><a href="https://www.bioconductor.org/packages/release/bioc/vignettes/edgeR/inst/doc/edgeRUsersGuide.pdfedgeRUserGuide.">edgeRUserGuide</a><cite>
+
+##### Question 7 What is the final coverage of your dataset? 
+The final coverage is 71.8% and is calcualted by the code below.
+```{r}
+dim(exp) # dim(exp) = 22347
+dim(exp.filtered) #dim(exp.filtered) = 16057
+# the final coverage is calculated as dim(exp.filtered) / dim(exp)
+16056/22347 
+#16057/22347 * 100% = 71.8%
+```
+
+### Reference 
+
+bcb420-2020. “bcb420-2020/General_Course_Info.” GitHub. Accessed February 8, 2020. https://github.com/bcb420-2020/General_Course_Info/wiki/Assignment#1#interpret-and-document.
+
+Chen, Yunshun, Aaron T. L. Lun, and Gordon K. Smyth. “Differential Expression Analysis of Complex RNA-Seq Experiments Using EdgeR.” Statistical Analysis of Next Generation Sequencing Data, 2014, 51–74. https://doi.org/10.1007/978-3-319-07212-8_3.
+
+Vadodaria, Krishna C., Yuan Ji, Michelle Skime, Apua Paquola, Timothy Nelson, Daniel Hall-Flavin, Callie Fredlender, et al. “Serotonin-Induced Hyperactivity in SSRI-Resistant Major Depressive Disorder Patient-Derived Neurons.” Molecular Psychiatry 24, no. 6 (2019): 795–807. https://doi.org/10.1038/s41380-019-0363-y.
