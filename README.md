@@ -10,4 +10,4 @@
 
 [Homework #1](https://github.com/bcb420-2020/student_wangtiananyiyi/wiki/Homewok-1:-Finding-Annotation-database---refseq)
 
-[Homework #2]
+[Homework #2](https://github.com/bcb420-2020/student_wangtiananyiyi/wiki/Homework-2-(-Feb-25th-))
