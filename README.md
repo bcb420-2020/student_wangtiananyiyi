@@ -8,6 +8,6 @@
 
 [Assignment #1](ASS1_Haoan.html)
 
-[Homework #1](https://github.com/bcb420-2020/student_wangtiananyiyi/wiki/Homewok-1:-Finding-Annotation-database---refseq)
+[Homework #1 Annotation Source Feb 11](https://github.com/bcb420-2020/student_wangtiananyiyi/wiki/Homewok-1:-Finding-Annotation-database---refseq)
 
-[Homework #2](https://github.com/bcb420-2020/student_wangtiananyiyi/wiki/Homework-2-(-Feb-25th-))
+[Homework #2 Enrichment Analysis Feb 25](https://github.com/bcb420-2020/student_wangtiananyiyi/wiki/Homework-2-(-Feb-25th-))
