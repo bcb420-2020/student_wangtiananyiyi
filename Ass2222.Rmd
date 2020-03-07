@@ -1,0 +1,337 @@
+---
+title: 'Assignmet 2- Differential Gene expression and Preliminary ORA'
+
+author: 'Haoan Wang'
+date: '2020-03-05'
+output:
+  html_document:
+    df_print: paged
+    toc: true
+    toc_depth: 4
+bibliography: a2reference.bib
+---
+
+# Article summary
+
+Every 3 out of 10 individuals treated with Serotonin Reuptake Inhibitors (SSRI) does not respond to treatment. [@vadodaria2019serotonin] investigated the differences in genome and their expression changes in response to administering 5-HT. The experiment was carried out in vivo by incubating neurons from induced pluripotent stem cells (iPSCs) in nonremitters (NR) and Healthy(H) individuals. [@vadodaria2019serotonin] concluded that up-regulation 5-HT2A receptors and 5-HT7 receptors were responsible for treatment inresponsiveness in NR patients. 
+
+
+# Preparation 
+Installing packages
+```{r install_packages, message=FALSE, echo=FALSE, warning=FALSE}
+if (!require(knitr)){
+  install.packages("knitr")
+}
+if (!require(pheatmap)){
+  BiocManager::install("Pheatmap")
+}
+if (!require(gprofiler2)){
+  install.packages("gprofiler2")                                                                      } #Not to confuse with gprfilerR , which was originally chosen instead of gprfiler2. But later found out that gprofilerR is the outdated and depreciated version of gprofiler2.                    
+if (!require(Biobase)){
+  install.packages("biobase")
+}
+if (!require(ggplot2)){
+  BiocManager::install("ggplot2")
+}
+if (!require(gridExtra)){
+  BiocManager::install("gridExtra")
+}
+if (!require(edgeR)){
+  install.packages('edgeR')
+}
+
+library(Biobase)
+library(pheatmap)
+library(knitr)
+library(gprofiler2)
+library(ggplot2)
+library(gridExtra)
+library(edgeR)
+
+```
+
+Loading data from Assignment 1, on which Assignment 2 is based. 
+
+```{r}
+load("~/Academic/BCB420/Assignment 2 Due March 3rd/exp.filtered.RData")
+#rmarkdown::render('ASS1_Haoan.Rmd') does the same thing. But I found writing out paths more easy to work with.
+exp.filtered
+```
+
+# Geneset of Interest 
+Building the geneset of interest by extracting relevant data from Assignment 1. 
+Selecting and define a new R object consistig of 'Healthy control' (H-Neuron#) & 'Resistant patients' (R-Neuron#) to be used for differential expression analysis
+```{r}
+# Selecting the three Healthy Groups (H-Neuron#) - colmun 1 to column 3 ,as the control 
+# And the three Resistant patients(NR-Neuron#)- colmun 4 to column 6 as the Test condition. 
+countData <- exp.filtered[ , c(1:6)] # Naming the new dataset as countData.
+rownames(countData) <- exp.filtered$name # Column 10 in exp.filtered are gene names, while rownames are numbers. 
+
+# define group
+group <- factor(c("H", "H", "H", "NR", "NR", "NR")) 
+d = DGEList(counts=countData, group=group) #function from edgeR
+d
+```
+
+Modelling and calculation of p-value
+```{r}
+#estimate dispersion
+d <- estimateDisp(d)   
+
+# calculate normalization factors
+d <- calcNormFactors(d)
+
+#fit model
+result <- exactTest(d) # d encompass bcv information 
+result <- topTags(result, n=nrow(exp.filtered), adjust.method = 'bonferroni')$table
+result
+```
+
+# Question 1 
+
+***1.a How many genes were significantly differentially expressed?***
+
+***1405***
+
+To answer the question, we need to check the dimention of the result, which is the same as the number of genes significantly differentially expressed. 
+```{R}
+length(which(result$PValue < 0.01))
+```
+
+***1.b What thresholds did you use and why?***
+
+I chose the threshold as 0.01. Two reasons were considered. 
+
+First, 0.01 is a widely accepted threshold as seen in most literatures including [@coplan2014neurobiological] and [@vadodaria2019serotonin].
+
+Second, consistency between my analysis and that of my original article [@vadodaria2019serotonin] is better for further interpretation when comparing min the original article and my analysis. 
+
+Specifically, [@vadodaria2019serotonin] chose p < 0.01 as the cut-off when comparing Non-remitter group (NR) and Healthy (H) in their pharmacological blockade experiment, in contrast to p < 0.05 when comparing Remitter(R) and Healthy (H) participants. As I chose to compare NR and H groups, selecting 0.01 as the threshold maintains such consisntency explained above. 
+
+
+# Question 2 
+
+Method is ***Bonferronni*** because ***Bonferronni is more stringent than the Bonferroni-Holme(BH), which is the default in the function toptags()***.
+
+***32 genes*** passed correction. It was calculated with the code below. 
+```{r}
+length(which(result$FWER < 0.01)) 
+```
+
+   
+# Question 3 
+***Show the amount of differentially expressed genes using an MA Plot or a Volcano plot. Highlight genes of interest.***
+
+### Volcano plot 
+```{r}
+result$colour <- "black"
+result$colour[result$PValue < 0.01 & result$logFC > 0] <- "orange"
+result$colour[result$PValue < 0.01 & result$logFC < 0] <- "blue"
+
+
+
+plot(result$logFC,
+     -log10(result$PValue),
+     col = result$colour,
+     xlab = "LogFC",
+     ylab ="-log10(P-value)",
+     main="Volcano plot of differentially expressed genes")
+```
+
+***Figure 1: Volcano plot for the post-CPM-normalized countData. Change in expression levels (logFC) were plotted against -log10(P-value), with p < 0.01 were chosen as the threshold value. Up-regulated genes are in orange whereas down-regulated were in blue.***
+
+# Question 4 
+Visualize your top hits using a heatmap. Do you conditions cluster together? Explain why or why not. 
+```{r}
+cpm.data <- cpm(as.matrix(countData))
+DEGs <- rownames(result)[1:100] # Chossing the most 100 significant 
+DEGs.cpm <- cpm.data[(rownames(cpm.data) %in% DEGs), ]
+library(pheatmap)
+pheatmap(log2(DEGs.cpm+1), show_rownames = F)
+```
+
+***Figure 2:Heatmap of the 100 most significantly differentially expressed genes. warmer (red/yellow) colour indicates higher expression levels, in contrast to colder (blue/pale blue) colour indicates lower expression value occurs. Three non-remitter(NR) samples were compared with three healthy(H) samples. Noticeable contrast can be seen between the three NR and H samples at the bottom and at the top of the heatmap. NR samples all showed lower expression towards the bottom of the heatmap while H samples showed higher expression values. Similarly, at the top of the heatmap,  genes in the three NR samples showed noticeably more red than blue while H samples showed the reverse trend, suggesting that those same genes in NR samples were expressed at a higher level than their those in the three H samples***
+
+As can be seen in the heatmap,***Yes, conditions do cluster together***. The pattern can be attributed to the fact that we chose the first 100 genes with the highest difference in expression values between NR and H samples. Therefore, it is expected that those within the same conditions will display obvious difference in expression level compared to those in healthy samples. 
+
+
+# Enrichment Analysis 
+
+Preparing query documents to be uploaded onto Gprofiler. 
+```{r}
+DEGs <- rownames(result)[result$PValue < 0.01]
+write.table(DEGs, file='rownames.DEGs', quote = F, row.names = F)
+up.regulate <-rownames(result)[result$PValue < 0.01 & result$logFC > 0]
+down.regulate <- rownames(result)[result$PValue < 0.01 & result$logFC < 0]
+write.table(up.regulate , file='rownames.up.regulate', quote = F, row.names = F)
+write.table(down.regulate , file='rownames.down.regulate', quote = F, row.names = F)
+```
+
+
+### via GProfiler2
+***Note: Below shows two ways of using GProfiler analysis: 
+1) via the GProfiler2 package in RStudio,
+2) via the Gprofiler website before importing images into RStudio.***
+
+#### All genes
+```{r}
+DEGs.ORA <- gost(query= DEGs, user_threshold=0.01, correction_method='bonferroni', sources=c('REAC', 'GO:BP', 'WP'))
+
+DEGs.sig.pathways <- DEGs.ORA$result$term_name[order(DEGs.ORA$result$p_value)]
+length('DEGs.sig.pathways')
+head(DEGs.sig.pathways)
+tail(DEGs.sig.pathways)
+
+gostplot(DEGs.ORA, interactive = F)
+```
+
+***Figure 3: Over-representation Analysis(ORA) of all differentially expressed genes (DEGs) were plotted with the threshold value shown as a horizontal line. Unlike figure 6, the number of genes above threshold is not specified on graph. Threshold p-value were adjusted from the default of p< 0.05 to p < 0.01. Correction method is changed from the default 'bonferroni-Holm' to 'bonferroni'. Three databases - Reactome(REAC), Go Biological Processes (GO:BP), and WikiPathways(WP) - were searched. 'Interactive is disabled'***
+
+#### Up-regulated genes
+```{r}
+up.regulated.ORA <- gost(query= up.regulate, user_threshold=0.01, correction_method='bonferroni', sources=c('REAC', 'GO:BP', 'WP'))
+
+up.regulated.sig.pathways <- up.regulated.ORA$result$term_name[order(up.regulated.ORA$result$p_value)]
+
+length(up.regulated.sig.pathways)
+
+head(up.regulated.sig.pathways)
+
+
+
+
+gostplot(up.regulated.ORA, interactive = F)
+
+
+
+```
+
+***Figure 4: Over-representation Analysis(ORA) figure for only up-regulated genes were plotted. Unlike figure  Threshold p-value were adjusted from the default of p< 0.05 to p < 0.01. Correction method is changed from the default 'bonferroni-Holm' to 'bonferroni'. Three databases - Reactome(REAC), Go Biological Processes (GO:BP), and WikiPathways(WP) - were searched. 'Interactive' is disabled. ***
+
+#### Down-regulated genes
+```{r}
+down.regulated.ORA <- gost(query= down.regulate, user_threshold=0.01, correction_method='bonferroni', sources=c('REAC', 'GO:BP', 'WP'))
+
+down.regulated.sig.pathways <- down.regulated.ORA$result$term_name[order(down.regulated.ORA$result$p_value)]
+length(down.regulated.sig.pathways)
+
+head(down.regulated.sig.pathways)
+
+gostplot(down.regulated.ORA, interactive = F )
+```
+
+***Figure 5: Over-representation Analysis(ORA) of only down-regulated genes were plotted. Threshold p-value were adjusted from the default of p< 0.05 to p < 0.01. Correction method is changed from the default 'bonferroni-Holm' to 'bonferroni'. Three databases - Reactome(REAC), Go Biological Processes (GO:BP), and WikiPathways(WP) - were searched. 'interactive' is disabled. ***
+
+### via Gprofiler Website
+Below are the images of related terms for the upregulated genes:
+
+```{r}
+#All figures are stored inside my default working directory, therefore not specifying the entire path as required
+knitr::include_graphics("DEGs.GProfiler.png")
+```
+
+***Figure 6: Over-representation Analysis(ORA) of all dfferentially expressed genes (DEGs) obtained through G profiler website. of all genes were plotted with the threshold value shown as a horizontal line. 44 values are above threshold. Threshold p-value were adjusted from the default of p< 0.05 to p < 0.01. Correction method is changed from the default 'bonferroni-Holm' to 'bonferroni'. Three databases - Reactome(REAC), Go Biological Processes (GO:BP), and WikiPathways(WP) - were searched. ***
+
+
+```{r}
+knitr::include_graphics("DEGs.png")
+```
+
+***Figure 7: Detailed list showing in descending numerical order each valuewith their corresponding gene function of Figure 6.***
+
+
+```{r}
+knitr::include_graphics("up.regulated.GProfiler.png")
+```
+
+***Figure 8: Over-representation Analysis(ORA) of only up-regulated genes obtained through G profiler website. 47 values are above threshold. Threshold p-value were adjusted from the default of p< 0.05 to p < 0.01. Correction method is changed from the default 'bonferroni-Holm' to 'bonferroni'. Three databases - Reactome(REAC), Go Biological Processes (GO:BP), and WikiPathways(WP) - were searched. ***
+
+
+```{r}
+knitr::include_graphics("up.regulated.png") 
+```
+
+
+***Figure 9: Detailed list in descending numerial order of each value with their corresponding gene function of Figure 8.***
+
+```{r}
+knitr::include_graphics("down.regulated.GProfiler.png")
+```
+
+***Figure 10: Over-representation Analysis(ORA) of only down-regulated genes were plotted. Consistent with Figure 5, No value is above the threshold. Threshold p-value were adjusted from the default of p< 0.05 to p < 0.01. Correction method is changed from the default 'bonferroni-Holm' to 'bonferroni'. Three databases - Reactome(REAC), Go Biological Processes (GO:BP), and WikiPathways(WP) - were searched. 'interactive' is disabled. ***
+
+
+```{r}
+knitr::include_graphics("down.regulated.png")
+```
+
+***Figure 11: Detailed list in descending numerial order of each value with their corresponding gene function of Figure 8. Due to its small number of data points, the png file generated included not only list of genes with their value, but also the individual expression level. More red and fewer blue or green squares can be seen at the top of the list whereas fewer red and more blue or green or white squares at the bottom  ***
+
+# Analysis Question: 
+With your significantly up-regulated and down-regulated set of genes run a thresholded gene set enrichment analysis
+
+***Which method did you choose and why?***
+
+I initially wanted to use DAVID for the threshold enrichment analysis because of its popularity over Gprofiler. However, as Ruth mentioned in class, the current version of DAVID is confusing. Therefore, I went on to G profiler. 
+
+Other than DAVID's defect, I also chose G profiler for two reasons. 
+
+First, G Profiler cross-references extensive annotation sources (eg. Kegg, Reactome, Wikipathways, Go etc.).
+
+Second, RStudio has a package- gProfile2- for GProfiler and its interface is straightforward.
+
+
+***What annotation data did you use and why? What version of the annotation are you using?***
+
+Besides the easy learning curve, free and easy accessibility, three databases - ' GO Biological Process', ' Reactome', ' WikiPathways'-  are used because of their ample number and shared usage of GO annotations. Further, All three databases cover extensive data in human biological pathways. WikiPathways, however, also covers organisms beyond humans, which is another plus when being used with Reactome. 
+
+
+***How many genesets were returned with what thresholds?***
+
+
+With threshold chosen at 0.01, 44 of all differentially expressed genes, 47 up-regulated genes and 0 down-regulated genes were returned. 
+
+***Run the analysis using the up-regulated set of genes, and the down-regulated set of genes separately. How do these results compare to using the whole list ***
+
+Before running codes, I hypothesize that the top six and the last six hits when running all genes in one go should yield the same results as the top six hits of, respectively, up-regulated and down=regulated genes. 
+
+Let's examine if the above hypothesis is true.
+```{r}
+# functions of genes in the top six and the last six values of all genes (DEGs)
+DEGs.sig.pathways <- DEGs.ORA$result$term_name[order(DEGs.ORA$result$p_value)]
+length('DEGs.sig.pathways')
+head(DEGs.sig.pathways)
+tail(DEGs.sig.pathways)
+```
+
+```{r}
+# The top six up-regulated genes. 
+up.regulated.sig.pathways <- up.regulated.ORA$result$term_name[order(up.regulated.ORA$result$p_value)]
+length(up.regulated.sig.pathways)
+
+#The top six down-regulated genes.
+down.regulated.sig.pathways <- down.regulated.ORA$result$term_name[order(down.regulated.ORA$result$p_value)]
+length(down.regulated.sig.pathways)
+head(down.regulated.sig.pathways)
+```
+
+For values above threshold, three more results- 47 in only up-regulated genes- were returned than using the whole list, which returned 44 above-threshold values.
+
+For down-regulated genes, the whole list and the down-regulated gene lists only are more in agreement because there are no values found above threshold. 
+
+# Interpretation
+
+***Do the over-representation results support conclusions or mechanism discussed in the original paper?***
+
+Yes. 
+[@vadodaria2019serotonin] discovered in administering 5-HT(SSRI analog) triggers hyperactivity within NR-derived neurons. This is achieved via up-regulation of two types of post-synaptic serotonin receptor- 5-HT2A and 5-HT7. As Fugure 4 and Figure 8 and their associated analysis shows, top results in up-regulated genes are all connected to gene sets or pathways related to neurogenesis. On the other hand, the top hits of down-regulated genes, are not related to the nervous system, for example, epithelium development. 
+
+However, [@vadodaria2019serotonin] did not locate genes that specify where in the nervous system do the up-regulation of the 5-HT2A receptors and 5-HT7 receptors occur. This can be because the fact that the study was done in vivo, instead of in vitro. In fact, [@vadodaria2019serotonin] acknowledged this shortcoming and suggested in-vitro studies as future directions. 
+
+In my opinion, this is the biggest weakness of the study because up-regulation of 5-HT2A receptors and 5-HT7 receptors, depending on where they occured within the nervous system, can either cause hyperactivity or hypoactivity in NR-derived neurons. Therefore future in-vitro study is highly needed to further understanding the non-responsiveness to SSRI treatment among non-remitters. 
+
+
+***Can you find evidence, i.e. publications, to support some of the results that you see. How does this evidence support your results.***
+After reviewing several studies exploring the reason behind non-responsiveness to SSRI treatment, it is clear that no consensus has been reached among reseacrhers. Yet, no direct contradictory evidence to my conclusion has been found. [@coplan2014neurobiological] suggested serotonin deficit - aka down-regulation- of neurotransmitter serotonin, as the cause. As serotonin synthesis and secretion requires high levels of synaptic vesicle production and Calcium signaling,  [@coplan2014neurobiological] suggested down-regulations in these genes, which is consistent with the top results in the ORA analysis among down-regulated genes.
+
+# References
