@@ -10,6 +10,8 @@
 
 [ Assignment #2 Journal](https://github.com/bcb420-2020/student_wangtiananyiyi/wiki/Assignmet-2--Differential-Gene-expression-and-Preliminary-ORA)
 
+[ Assignment #3 Journal](https://github.com/bcb420-2020/student_wangtiananyiyi/wiki/Assignment-3)
+
 [Assignment #2 HTML submission](Ass2222.html)
 
 
