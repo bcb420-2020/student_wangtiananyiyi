@@ -1,0 +1,313 @@
+---
+title: 'Assignmet 3- Non-thresholded '
+
+author: 'Haoan Wang'
+date: ' 2020-04-30'
+output:
+  html_document:
+    
+    df_print: paged
+    toc: true
+    toc_depth: 6
+bibliography: a3reference.bib
+---
+
+# Introduction 
+
+MDD is one of the leading cause of disability around the world. In the United States (U.S), for examle, 1.5 mmillion Americans suffer from Major Depressive Disorder (MDD). Serotonin Reuptake Inhibitor (SSRI) is the first-line of antidepressant treatment of Major Depressive Disorder (MDD)[@vadodaria2019serotonin]. But statistics consistently show that around 30% to 40% of MDD patients do not respond to any SSRI treatment. Yet little knowledge do we know why such irresponsiveness happen [@vadodaria2019serotonin]. 
+
+[@vadodaria2019serotonin] tried to address this issue by incubating induced pluripotent stem cells (iPSCs) derived from patients biosies, who were stratified based on their responsiveness to Escitalopram, a popular and new SSRI.Initially, a cohort of 803 candidates without any comorbidity but only MDD diagnosis were chosen. Participants was put off any prior medications, especially SSRIs, for two weeks before being put on a 8-week regimen of Escitalopram [@vadodaria2019serotonin]. Beyond Healthy (H) controls, based on their responsiveness to SSRI treatment, participants were divided into two groups remitters(R) and Non-remitters (NR), before subject to further skin biosies for the iPSC in-vitro experiment [@vadodaria2019serotonin]. I chose the NR and H group because [@vadodaria2019serotonin] focused on these two groups as well. Through both thresholded , and non-thrsholded analysis, I used their gene expression data and investigates differences in gene expression between H and NR participants. 
+
+Data preparation and filtration of useful data , i.e. with significant changes in gene expression and without weak or outlier data, was done in the first assignment. In the second assignment, thresholded analysis, or Overrepresentation Analysis (ORA), was conducted through GProfiler, and found up-regulated and down-regulated individual genes [@vadodaria2019serotonin]. 
+
+In Assignment 3, we are going from a different angel and conduct non-thresholded analysis, or Gene Enrichment Analysis (GSEA). I hypothesize that GESA generate similar or same result result as the original paper of  [@vadodaria2019serotonin] and those of Assignment 2. Finally,  a comparison between Assignment 3 result with the model proposed in the original paper and the up-regulated and down-regulated genes from Assignment 2 was conducted in this assignment[@vadodaria2019serotonin].
+
+# Preparatory work for the current assignment 
+
+```{r install_packages, message=FALSE, echo=FALSE, warning=FALSE}
+if (!require(knitr)){
+  install.packages("knitr")
+}
+```
+
+
+# Non-thresholded Gene set Enrichment Analysis
+
+## Q1a - Method
+*** What method did you use? What genesets did you use? Make sure to specify versions and cite your methods.***
+
+### Method
+* GSEA analysis were carried out through the software-GSEA.4.0.3 was used and downloaded from
+[https://www.gsea-msigdb.org/gsea/downloads.jsp#msigdb Download.GSEA]
+
+* The Parameters and files used were shown below.
+* Geneset used are:
+#
+
+
+### GSEA parameters 
+```{r}
+knitr::include_graphics('/Users/haoanwang./Academic/BCB420/Ass3/Publication Image /GSEA-parameters.png') 
+```
+
+Figure 1: Screen shot of the GSEA analysis parameters. The ranked gene list is ranked on its gene's signal-to-noise ratio in descending order. 1000 permutation based on phenotype with no-collapse gene symbol were selected. 
+
+#### Gene List (.txt) 
+
+```{r}
+load("~/Academic/BCB420/ASS-1/Assignment 1 finals /exp.filtered.RData")
+cpms.exp.filtered <- edgeR::cpm(exp.filtered[,-10])
+rownames(cpms.exp.filtered) <- exp.filtered[,10]
+cpms.exp.filtered <- cpms.exp.filtered[,-c(7:9)]
+write.table(cpms.exp.filtered, 'cpms.exp.filtered.txt', sep = "\t", quote = F)
+```
+
+#### Phenotype (.cls)
+
+```{r}
+# Screenshot (.png) of the 'phenotype.cls' file
+knitr::include_graphics('/Users/haoanwang./Academic/BCB420/Ass3/Phenotype.png') 
+```
+
+Figure 2: Screenshot of the phenotype.cls document used in GSEA 4.0.3.
+
+## Q1b - Genesets
+What genesets did you use? 
+
+*** Six genesets (with screenshots) were selected as shown below. ***
+1.  'h.all.v7.1.symbols.gt' from [Hallmarks] 
+2.  c2.cp.Biocarta.v7.1.symbols.gmt [Curated]
+3.  c2.cp.Kegg.v7.1.symbols.gmt [Curated]
+4.  c2.cp.Reactome.v7.1.symbols.gmt [Curated]
+5.  c2.cp.pid.v7.1.symbols.gmt [Curated]
+6.  'c5.all.v7.1.symbols.gmt [GO]
+
+### [Hallmarks] - MSigDB 'h.all.v7.1.symbols.gt' from 
+
+```{r}
+knitr::include_graphics('/Users/haoanwang./Academic/BCB420/Ass3/Genesets/Hallmarks.png') 
+```
+
+Figure 3: One geneset from Hallmark database. The gene set of ' h.all.v7.1.symbols.gmt 'from the Hallmark database were selected for GSEA.
+
+### [Curated] - Biocarta, Kegg, Pid, Reactome from 
+
+```{r}
+knitr::include_graphics('/Users/haoanwang./Academic/BCB420/Ass3/Genesets/curated4.png') 
+```
+
+Figure 4: Four genesets - biocarta, kegg, pid and reactome - from the Curated database were selected for GSEA. More specifically, 1) c2.cp.Biocarta.v7.1.symbols.gmt [Curated]  2) c2.cp.Kegg.v7.1.symbols.gmt [Curated] 3) c2.cp.Reactome.v7.1.symbols.gmt [Curated] 4) c2.cp.pid.v7.1.symbols.gmt [Curated]
+
+### [GO] 'c5.all.v7.1.symbols.gmt' from 
+
+```{r}
+knitr::include_graphics('/Users/haoanwang./Academic/BCB420/Ass3/Genesets/GOgeneset.png')
+```
+
+Figure 5: One geneset was selected from Gene Ontology Database. The 'c5.all.v7.1.symbols.gmt' geneset from GO was selected as the last gene set for GSEA. 
+
+
+## Enrichment result 
+
+
+### Non-remitters (NR)
+```{r}
+read.csv(file = '/Users/haoanwang./Academic/BCB420/Ass3/Nonremitters.csv')
+```
+
+Table 1: List of up-regulated pathways among nonremitters identified through running GSEA 4.0.3 with the 'phenotype.cls' and six selected genesets. The pathways are ranked based on their NES score in ascending order, with the top pathways being those with the highest absolute value of their NES score among NR samples. 
+
+### Healthy (H)
+
+```{r}
+read.csv(file = '/Users/haoanwang./Academic/BCB420/Ass3/Healthy.csv')
+```
+
+Table 1: List of down-regulated  pathways among Healthy control group, identified through running GSEA 4.0.3 with 'phenotype.cls' and six selected genesets. Pathways are ranked based on their NES score in descending order.
+
+6(a)
+```{r}
+knitr::include_graphics('/Users/haoanwang./Academic/BCB420/Ass3/GSEA.result/ranked_list_corr_2.png')
+```
+
+6(B)
+
+```{r}
+knitr::include_graphics('/Users/haoanwang./Academic/BCB420/Ass3/GSEA.result/pvalues_vs_nes_plot.png') 
+```
+
+6(C)
+```{r}
+knitr::include_graphics('/Users/haoanwang./Academic/BCB420/Ass3/GSEA.result/butterfly_plot.png') 
+```
+
+Figure 6: (a) Ranked Gene List Correlation Profile shows the change in signal-to-noise ratio - Y axis-plotted against Gene position number across the gene lists. (b) The P-value (black) and FDR (red) plotted against NES.  (c) Butterfly plot of NR (blue) and H (red)
+
+
+```{r}
+knitr::include_graphics('/Users/haoanwang./Academic/BCB420/Ass3/Heat.map.1LL.001.jpeg')
+```
+
+Figure 7: Heat map generated from non-thresholded analysis (Healthy minus NR). Blue represent up-regulation in NR whereas red represent up-regulation in Healthy population. The y-axis is the individual gene names and the x-axis is the sample observations- three replicates from both Healthy and Nonremitters. 
+
+
+
+```{r}
+knitr::include_graphics('/Users/haoanwang./Academic/BCB420/Ass3/EA.H_nr.png') 
+```
+
+Figure 8: A collection of 21 Enrichment Plot where H-enriched pathways were found. For each plot, the x-axis is the position number of genes and the y-axis is the Enrichment Score (ES). H-enriched genes all have positive ESs, sharing one characteristic pattern where ES climb up almost uninterrutedly from the start before reaching the peak and going downwards until reaching the x-axis. Each vertical black line refer to one enriched gene.  
+
+```{r}
+knitr::include_graphics('/Users/haoanwang./Academic/BCB420/Ass3/EA.NR_H.png') 
+```
+
+Figure 9: A collection of 20 Enrichment Plot where up-regulation of gene sets in NRs.  For each plot, the x-axis is the position number of genes and the y-axis is the Enrichment Score (ES).  NR-enriched genes all have negative ES, with NR's trend kept descending to negative value before climbing back up in the end. Each vertical black line refer to one enriched gene.   
+
+
+### How do these results compare to the results from the thresholded analysis in Assignment #2. Compare qualitatively. Is this a straight forward comparison? Why or why not?
+
+In general, results from ORA agree with GSEA but the comparison is not straight-forward. Basic knowledge of molecular neurosciences is needed to spot the similarity. overlap when comparing results obtained from both methods.   
+
+At first glance, I expected the comparison to be very straight-forward for two reasons. First, both thresholded and non-thresholded analysis share two database- GO and Wikipathways. Second, both analysis work on the same collection of data. The only difference is the method and the angels analysis. 
+
+Despite these two reasons, the comparison is not straight-forward, despite my conclusion that ORA and GSEA analysis are two sides of the same coin. The difference and the difficulty in comparison lies in my observation that thresholded analysis work on a macroscopic level whereas non-thresholded analysis works on a microscropic level. 
+
+This is reflected in the results. For example, among up-regulated genes in NR sample, thresholded analysis found neurogenesis whereas GSEA found ''Ionotropic Glutamate Receptor Binding'. They appeared describe two different biological processes. But in fact AMPA and NMDA receptors - both ionotropic Glutamate receptors - are the two receptors modulating memory formation, a form of 'neurogenesis' found through GProfiler. [@luscher2012nmda]
+More specifically, NMDA receptors, on receiving titanic stimuli, are responsible for Long-term Potentiation (LTP) whereas AMPA receptors are responsible for Long-term Depression. The interplay and equilibrium between the activity of these two receptors decides which newly formed memory (neurons) will be kept in our brain, aka neurogenesis. But this relationship would not be easily spotted for those without relevant background knowledge. 
+
+Clearly, there still exists a gap of information- sandwiched between the biological processes level (Macroscopic) and the individual pathway level(Micrscopic). As a result of this gap, the comparison was not as straight-forward as I initially expected. 
+
+
+
+# Visualize in Cytoscape
+
+### 1 Create an enrichment map 
+
+```{r}
+knitr::include_graphics('/Users/haoanwang./Academic/BCB420/Ass3/EM3LT.001.jpeg') 
+```
+
+### 1.a how many nodes and how many edges in the resulting map
+
+* Number of nodes: 802
+* Number of edges: 3170
+
+The numbers were obtained from the control panel from GSEA under 'network', which lists all existing Enrichment maps and their respecitive number of nodes and edges. 
+
+#### Screenshot (Nodes & Edges)
+```{r}
+knitr::include_graphics('/Users/haoanwang./Academic/BCB420/Ass3/Nodes.edges.png') 
+```
+
+Figure 10: This screen shot was taken under 'network' at the 'control panel'. The smaller number(left) represents the number of nodes and the larger number(right) represents the number of edges. 
+
+### 1.b what parameters did you use to annotate the network. If you are using the default parameters make sure to list them as well
+
+* P-Value Threshold: 0.005
+* FDR Q-Value Threshold: 1.0
+
+#### Screenshot (Enrichment Map Parameters)
+
+```{r}
+knitr::include_graphics('/Users/haoanwang./Academic/BCB420/Ass3/Publication Image /P.FDR.png') 
+```
+
+Figure 11: P-Value threshold of 0.005 is the default cut-off whereas FDR cut-off is set as 1.0.
+
+### 2 Annotating network 
+
+```{r, warning=FALSE}
+knitr::include_graphics('/Users/haoanwang./Academic/BCB420/Ass3/autoannotation.png') 
+```
+
+Figure 12: shows the result panel in Cytoscape 4.0.3. Medium-sized circle with black Boarder width of 6 and relatively low opacity (37%), filled with yellow, were used instead of the default ones for better visualization of my data.
+
+### 3 Publication-ready figure 
+
+```{r}
+knitr::include_graphics('/Users/haoanwang./Academic/BCB420/Ass3/Cytoscape.13.001.jpeg') 
+```
+
+### 4 Collapsing to a theme network. 
+```{r, warning=FALSE}
+knitr::include_graphics('/Users/haoanwang./Academic/BCB420/Ass3/s.network.legend.001.jpeg') 
+```
+
+Figure 14: The theme network is collapsed from the publication-ready figure. The theme network is a oversimplication of network themes with discreet mapping and two colours instead of a gradient of colours seen in continuous mapping as in Figure 12 and Figure 16.
+
+#### What are the major themes present in this analysis? 
+
+##### Down-regulation (Red) : 
+
+Major themes are closely related to cell division , differentiation and migration. Specifically, the two leading nodes with the highest number - five-  of edges - 'degradation p27 G2' and 'sister chromatids cohesion'. 
+
+In addition, both nodes connect to nodes also involved in cell division and differentiation,  for example, 'double-strand break' and ' DNA Integrity checkpoint'  connected to 'degradation p27 G2'; 'Mitotic spindle organization' connected to 'sister chromatids cohesion'
+
+##### Up-regulation (Blue) : 
+
+Major themes are closely related to synapse or synaptic transmission or individual neurons. 
+
+The network is less inter-connected than the down-regulation network. One interconnected graph with leading edges - ' Ventricular Cardiac contraction'  and 'Chloride Gaba Anion'. Of special interest  is the one of the connected nodes -  'Serotonin Receptor Neuroactive' - is the prime drug target of Escitalopram , an SSRI used in post-analysis. 
+
+
+#### Do they fit with the model? 
+
+The result agrees with the model proposed in [@vadodaria2019serotonin]. The strongest evidence is the higher expression level of both serotonergic receptors and ionic channels responsible for neurotransmission - sodium-, potassium- and proton- pump pathways-  is consistent with hyperactivity observed among neurons downstream of the Serotonergic neurons targed by SSRI by [@vadodaria2019serotonin]. 
+
+#### Are there any novel pathways or themes?
+
+Yes. In fact the novel theme - 'Ventricular Cardiac contract' - is also the up-regulated nodes with the most number of edges. This novel pathway was not mentioned in the paper where the entire focus was exclusively on neurotransmission and neurogenesis among serotonergic neurons in human forebrain. 
+Browsing of literatures does not give much insight into the precise mechanism why cardiac pathways would be extensively involved in its up-regulation following SSRI treatment targeting the frontal lobes of the brain. 
+
+However,it could be due to its close relationship to both Sodium- and Potassium- pump involved in neurotransmission between the brain and the heart. Correlation between MDD and cardiac conditions have been established. Specifically, cardiac patients are three times as likely to suffer from Depression than those of healthy population [@verissimo2018treatment]. If further study is possible, how SSRI treatment alter cardiac-related gene expression would be my choice of future direction. 
+
+
+
+# Interpretation and detailed view of results
+
+*** Do the enrichment results support conclusions or mechanism discussed in the original paper? How do these results differ from the results you got from Assignment #2 thresholded methods
+Can you find evidence, i.e. publications, to support some of the results that you see. How does this evidence support your result? ***
+
+Both of the GSEA and ORA results support the findings of the original paper. 
+
+Thresholded and non-thresholded analysis not only agrees with the paper, but also offered potential explainations as to why hyperactivity is observed.
+
+
+[@vadodaria2019serotonin] observed hyperactivity in NR-derived neurons downstream of upregulated serotonergic receptors (SERT), distinct from neurons derived from healthy controls(H). Pathway analysis through GSEA identified up-regulated pathways among NR as shown in Table 1. 
+
+Through thresholded analysis, we found that neurogenesis , neural system developments and neuronal cell migration and differentiation. As generating new neurons and tissues requires higher energy, the finding of thresholded analysis agrees with the hyperactivity found in [@vadodaria2019serotonin], and potentially explains that the heghtened activity could be due to the downstream neuron's neurogenesis, in response to the sudden increase in serotonin concentration that bind to the downstream neurons. 
+
+Through non-thresholded analysis, we found that glutamate receptor binding occupies the top two up-regulated genes. This agrees with the original paper and the ' neurogenesis hypothesis' obtained through thresholded analysis. As was argued earlier,  NMDA receptor and AMPA receptor- both ionotropic glutamate receptors - engage in memory formation , which is a form of neurogenesis.
+
+Thus, both non-thresholded analysis and thresholded analysis points to the same direction that neurogenesis in the form of memory formation could be related to the hyperactivity observed by [@vadodaria2019serotonin].
+
+In addition, [@boldrini2009antidepressants] observed increased neural progenitor cells (NPC) in rodents and nonhuman primate following SSRI treatmentin Dentate Gyrus (DG). Further, [@boldrini2013hippocampal] 
+observed that hippocampal volume and Dentate Gyrus (DG) size shrinks in MDD human patients, but both could be reversed by SSRI treatment. However, both studies did not differentiate phenotype based on SSRI-responsiveness, and therefore the above theory could be due to administration of SSRI alone, not accompanied by MDD symptom alleviation. 
+
+[@coplan2014neurobiological] resolved the issue by differentiating patients in Treatment-responsive and treatment-resistant groups. [@coplan2014neurobiological] concluded that, treatment-resistant cannot be simply explained by serotonin deficit.  Rather, an excess of midbrain peri-raphe serotonin and subsequent deficit at key fronto- limbic projection sites, with ultimate compromise in serotonin-mediated neuroplasticity. This further supports the original article as it identified serotonin deficit in forebrain, where the NR-derived iPSC neurons were derived from. Further, 
+[@coplan2014neurobiological] also support [@boldrini2009antidepressants] and [@boldrini2013hippocampal] in that both DG and hippocampus are part of the limbic system, downstream of the front-limbic projection site.
+
+
+# Post-analysis 
+
+***Add a post analysis from the previous section to your main network analysis to your main network using specific transcription factors, microRNAs or drugs. Include the reason why you chose the specific miRs, TFs or drugs (i.e publications indicating that they might be related to your model). What does this post analysis show? ***
+
+
+```{r, warning=FALSE}
+knitr::include_graphics('/Users/haoanwang./Academic/BCB420/Ass3/EM500postSSRI.png') 
+```
+
+***Legend of this graph is the same as Figure 13***
+
+Figure 15: Post-analysis identified and connected the target of Escitalopram (Green). The thickness of the dash line represent the confidence level of the relationship. The thick line denotes those at between 0.5 to 1.0 confidence level while thin line denote between 0.1 to 0.5.
+
+Escitalopram was chosen as the drug of interest because in the original study, [@vadodaria2019serotonin] selected this very drug to find suitable candidates for the study. Specifically, 803 participants were put on Escitalopram for 8 weeks before those extreme responders and extreme non-responders were selected for further skin biopsies and iPSC incubation. 
+
+As is shown above, four out of seven major pathways are related to up-regulation of serotonin receptor. This is not only supported by [@coplan2014neurobiological] but also is consistent with the finding of [@vadodaria2019serotonin] where iPSCs from both Healthy and NR samples were treated with artificial 5-HT molecules instead of Escitalopram. 
+
+
+
+
+
+# Reference 
